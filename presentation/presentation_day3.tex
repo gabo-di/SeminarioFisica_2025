@@ -1,0 +1,163 @@
+\documentclass[aspectratio=169]{beamer}
+\usetheme[numbering=fraction,progressbar=frametitle]{metropolis}
+\usepackage{animate}
+\usepackage{graphicx}
+\usepackage{physics}
+\usepackage{amsmath, amssymb}
+\usepackage[newfloat]{minted} % code highlighting (needs -shell-escape and activate conda env base)
+\usepackage{textgreek}
+\newcommand{\im}{\mathrm{i}} % for imaginary number
+\usepackage[svgnames]{xcolor}
+\setbeamercolor{background canvas}{bg=Ivory}
+\usepackage{bm}
+
+\title{Nonlinear Interactions and Collective Dynamics}
+\author{Gabriel D\'iaz Iturry}
+\date{Conferencias de F\'isica Te\'orica, FCyT 2025}
+
+
+
+\begin{document}
+\maketitle
+
+\begin{frame}
+\frametitle{Table of Contents}
+\tableofcontents
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Chain of Nonlinear Oscillators %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Chain of Nonlinear Oscillators}
+
+\begin{frame}{Chain of Nonlinear Oscillators}
+    Periodic Linear Chain of N Nonlinear Oscillators Differential Equation:
+    \begin{eqnarray}
+        \begin{bmatrix}
+            \ddot x_1 \\ \ddot x_2 \\ \ddot x_3 \\ \vdots \\ \ddot x_{N-1}  \\ \ddot x_N 
+        \end{bmatrix}   & = & 
+        \omega^2
+        \begin{bmatrix}
+            -2 & 1 & 0 & \cdots & 0 & 1\\
+            1 & -2 & 1 & \cdots & 0 & 0\\  
+            0 & 1 & -2 & \cdots & 0 & 0\\      
+            \vdots & \vdots & \vdots & \ddots & \vdots & \vdots \\
+            1 & 0 & 0 & \cdots & 1 & -2
+        \end{bmatrix}
+        \begin{bmatrix}
+            x_1 \\  x_2 \\  x_3 \\ \vdots \\ x_{N-1} \\  x_N 
+        \end{bmatrix} 
+        -
+        \begin{bmatrix}
+            f(x_1) \\ f(x_2) \\ f(x_3) \\ \vdots \\ f(x_{N-1}) \\ f(x_N) 
+        \end{bmatrix} \\
+        \pause
+        f(x) & = & ax^3 + bx
+    \end{eqnarray}
+\end{frame}
+
+\begin{frame}{Chain N Linear Oscillators random position}
+    \centering
+    \animategraphics[controls,width=\linewidth]{10}{../day3/frames_lc/N_ho-}{0001}{0100}
+\end{frame}
+
+\begin{frame}{N Nonlinear Oscillators random position}
+    \centering
+    \animategraphics[controls,width=\linewidth]{10}{../day3/frames_no/N_ho-}{0001}{0100}
+\end{frame}
+
+\begin{frame}{Chain N Nonlinear Oscillators random position}
+    \centering
+    \animategraphics[controls,width=\linewidth]{10}{../day3/frames_nloc/N_ho-}{0001}{0100}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Nonlinear Schrodinger Equation %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Nonlinear Schr\"odinger Equation}
+
+\begin{frame}{Nonlinear Schr\"odinger Equation}
+    Nonlinear Schr\"odinger Equation in position basis (Gross–Pitaevskii Equation):
+    \begin{eqnarray}
+        \im \hbar \frac{\partial \psi}{\partial t} & = & 
+            -\frac{\hbar^2}{2m}\nabla^2 \psi + V(\bm{x}) \psi + g |\psi|^2 \psi
+    \end{eqnarray}
+    \pause
+    \begin{itemize}
+        \item $g<0$  gives focussing nonlinearity. 
+        \item $g>0$  gives nonfocussing nonlinearity. 
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Solitons in NSLE}
+    If we consider the 1D case $V(\bm{x})=0$ then a solution of NSLE is:
+    \begin{itemize}
+        \item Case $g<0$, bright soliton:
+        \begin{eqnarray}
+            \psi(x,t) & = &
+                |\psi_0| \exp\left( - \frac{\im g |\psi_0|^2 t}{2\hbar} \right)\sech\left(\frac{\sqrt{-m g} |\psi_0|}{\hbar} x\right) \nonumber
+        \end{eqnarray}
+        \item Case $g>0$, dark soliton:
+        \begin{eqnarray}
+            \psi(x,t) & = &
+                |\psi_0| \exp\left( - \frac{\im g |\psi_0|^2 t}{\hbar} \right) \tanh\left( \frac{\sqrt{mg}|\psi_0|}{\hbar}  x\right) \nonumber  
+        \end{eqnarray}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{N Oscillators Code}
+    \begin{minted}[fontsize=\footnotesize]{julia1}
+        function nlse!(du, u, p, t)
+            A = p.A
+            g = p.g
+            r_du, i_du = eachslice(du, dims=1)
+            r_u, i_u = eachslice(u, dims=1)
+
+            # linear part 
+            mul!(r_du, A, i_u)
+            mul!(i_du, A, -r_u)
+
+            # non linear part 
+            map!((z,x,y)-> z + g*(x^2+y^2)*y, r_du, r_du, r_u, i_u)
+            map!((z,x,y)-> z - g*(x^2+y^2)*x, i_du, i_du, r_u, i_u)
+            return nothing
+        end
+    \end{minted}
+\end{frame}
+
+\begin{frame}{SE finite barrier}
+    \centering
+    \animategraphics[controls,width=\linewidth]{20}{../day3/frames_SE_finitebarrier/wave_change-}{0001}{0500}
+\end{frame}
+
+\begin{frame}{NSLE $g<0$ finite barrier}
+    \centering
+    \animategraphics[controls,width=\linewidth]{20}{../day3/frames_NLSE_finitebarrier/wave_change-}{0001}{0500}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Reaction Diffusion Barkley model %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Reaction Diffusion Barkley model}
+
+\begin{frame}{Reaction Diffusion Barkley model}
+    The Barkley model of reaction diffusion
+    \begin{eqnarray}
+        \frac{\partial u}{\partial t} & = & \frac{1}{\epsilon} u (1-u)\left(u - \frac{v+b}{a}\right) + \nabla^2 u \\
+        \frac{\partial v}{\partial t} & = & u - v + D_v \nabla^2 v
+    \end{eqnarray}
+    \pause
+    \begin{itemize}
+        \item $u$ activator, fast time scale.
+        \item $v$ inhibitor, slow time scale.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Reaction Diffusion Barkley model}
+    \centering
+    \animategraphics[controls,width=\linewidth]{20}{../day3/frames_reactiondiffusion/wave_change-}{0001}{0200}
+\end{frame}
+
+\end{document}

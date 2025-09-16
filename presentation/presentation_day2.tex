@@ -1,0 +1,368 @@
+\documentclass[aspectratio=169]{beamer}
+\usetheme[numbering=fraction,progressbar=frametitle]{metropolis}
+\usepackage{animate}
+\usepackage{graphicx}
+\usepackage{physics}
+\usepackage{amsmath, amssymb}
+\usepackage[newfloat]{minted} % code highlighting (needs -shell-escape and activate conda env base)
+\usepackage{textgreek}
+\newcommand{\im}{\mathrm{i}} % for imaginary number
+\usepackage[svgnames]{xcolor}
+\setbeamercolor{background canvas}{bg=Ivory}
+\usepackage{bm}
+
+\title{"Normal modes" in Physics equations}
+\author{Gabriel D\'iaz Iturry}
+\date{Conferencias de F\'isica Te\'orica, FCyT 2025}
+
+
+
+\begin{document}
+\maketitle
+
+\begin{frame}
+\frametitle{Table of Contents}
+\tableofcontents
+\end{frame}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%
+% Maxwell's Equations %
+%%%%%%%%%%%%%%%%%%%%%%%
+\section{Maxwell's Equations}
+
+\begin{frame}{Maxwell's Equations}
+    Maxwell's Equations:
+    \begin{eqnarray}
+        \bm{\nabla} \cdot \bm{E} & = &  \frac{\rho}{\varepsilon_0}  \\
+        \bm{\nabla} \cdot \bm{B} & = & 0 \\
+        \bm{\nabla} \times \bm{E} & = & - \frac{\partial \bm{B}}{\partial t} \\
+        \bm{\nabla} \times \bm{B} & = & \mu_0 \bm{J} + \mu_0 \varepsilon_0  \frac{\partial \bm{E}}{\partial t}
+    \end{eqnarray}
+    \pause
+    Consider no charges $\rho = 0$ and no currents $\bm{J} = \bm{0}$.
+    With $c=\frac{1}{\sqrt{\mu_0\varepsilon_0}}$ this gives the vector wave equations:
+    \[
+    \nabla^2 \mathbf E - \frac{1}{c^2}\,\partial_t^2 \mathbf E = \mathbf 0,
+    \qquad
+    \nabla^2 \mathbf B - \frac{1}{c^2}\,\partial_t^2 \mathbf B = \mathbf 0.
+    \]
+\end{frame}
+
+\begin{frame}{Separation of variables \& Dirichlet boundary conditions}
+    Consider a parallel-plate cavity on $x\!\in\![0,L]$ and a transverse field component
+    $E_y(x,t)=\varphi(t)\,\phi(x)$.
+
+    \pause
+    The 1D wave equation becomes 
+    \[
+    \phi''(x) + k^2 \phi(x) = 0, \qquad
+    \ddot{\varphi}(t) + c^2 k^2 \varphi(t) = 0.
+    \]
+
+    \pause
+    At a perfect electric conductor the tangential electric field vanishes:
+    For plates at $x=0,L$ this gives
+    \[
+    E_y(0,t)=E_y(L,t)=0 \;\Rightarrow\; \phi(0)=\phi(L)=0 \quad\text{(Dirichlet BC).}
+    \]
+
+    \pause
+    \textbf{Eigenmodes.} (Normal modes)
+    $\phi_n(x)=\sin\!\left(\tfrac{n\pi x}{L}\right)$,\;
+    $\varphi_n(t) = \exp(\pm \im \omega_n t)$, \;
+    $k_n=\tfrac{n\pi}{L}$,\;
+    $\omega_n=ck_n$,\;
+    $n=1,\,2,\hdots$.
+\end{frame}
+
+\begin{frame}{Finite Differences}
+    On the computer the derivative can be approximated as:
+    \begin{eqnarray}
+        \frac{\partial \phi}{\partial x}(x_i) & \approx & \frac{\phi(x_{i+1}) - \phi(x_{i-1})}{2\Delta x} \\
+        \frac{\partial^2 \phi}{\partial x^2}(x_i) & \approx & \frac{\phi(x_{i+1}) - 2 \phi(x_{i}) + \phi(x_{i-1})}{\Delta x ^2}
+    \end{eqnarray}
+    where we assume to have a grid discretization ${x_0,\, x_1,\cdots,\,x_N,\,x_{N+1}}$, $\Delta x = x_i - x_{i-1}$ and the function evaluated 
+    on those points $\phi(x_i) = \phi_i$.
+\end{frame}
+
+\begin{frame}{Finite Differences}
+    Then considering the derivative approximation + BC we obtain:
+    \begin{eqnarray}
+        \frac{1}{\Delta x^2}\begin{bmatrix}
+            -2 & 1 & 0 & \cdots & 0 & 0\\
+            1 & -2 & 1 & \cdots & 0 & 0\\  
+            0 & 1 & -2 & \cdots & 0 & 0\\      
+            \vdots & \vdots & \vdots & \ddots & \vdots & \vdots \\
+            0 & 0 & 0 & \cdots & 1 & -2
+        \end{bmatrix}
+        \begin{bmatrix}
+            \phi_1 \\  \phi_2 \\  \phi_3 \\ \vdots \\ \phi_{N-1} \\  \phi_N 
+        \end{bmatrix} 
+        & = &
+        -k^2 
+        \begin{bmatrix}
+            \phi_1 \\  \phi_2 \\  \phi_3 \\ \vdots \\ \phi_{N-1} \\  \phi_N 
+        \end{bmatrix} 
+    \end{eqnarray}
+    where we use the boundary condition $\phi_0=0$ and $\phi_{N+1}=0$.
+\end{frame}
+
+\begin{frame}[fragile]{Wave Equation Eigensystem Code}
+    \begin{minted}[fontsize=\footnotesize]{julia1}
+        function analytical_eigenstate(i_mode)
+            return x -> sin(x * pi * i_mode/ p.L)
+        end
+
+        T = Float64
+        p = (L = 1,
+            N = 100,
+            c = 1,
+            )
+        A = make_EM_wave_Dirichlet_matrix(T, p)
+        x = LinRange(T(0), T(p.L), p.N+2)
+        F = eigen(Matrix(A), sortby=abs)
+    \end{minted}
+\end{frame}
+
+\begin{frame}{Wave Equation solution}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \centering 
+            \begin{figure}
+            \includegraphics[width=0.9\linewidth]{../day2/EM_Dirichlet_eigenstate_001.png} \\
+            \caption{First eigen mode} 
+            \end{figure}
+        \end{column}
+
+        \begin{column}{0.5\textwidth}
+            \centering 
+            \begin{figure}
+            \includegraphics[width=0.9\linewidth]{../day2/EM_Dirichlet_eigenstate_003.png} \\
+            \caption{Third eigen mode} 
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Wave Equation Eigenvalues}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \centering 
+            \begin{figure}
+            \includegraphics[width=0.9\linewidth]{../day2/EM_Dirichlet_eigenvalues.png} \\
+            \caption{Wave Equation Eigenvalues} 
+            \end{figure}
+        \end{column}
+    
+        \pause
+        \begin{column}{0.5\textwidth}
+            Can we do better?
+            \pause
+            \begin{itemize}
+                \item Higher order finite difference approx
+                \pause
+                \item Finite Element Method
+                \pause
+                \item Sine Fourier Transform
+            \end{itemize}
+        \end{column}
+
+    \end{columns}
+\end{frame}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%
+% Diffusion Equation %
+%%%%%%%%%%%%%%%%%%%%%%
+\section{Diffusion Equation}
+
+\begin{frame}{Diffusion Equation}
+    Diffusion Equation:
+    \begin{eqnarray}
+        \frac{\partial \rho}{\partial t} & = & \nabla \cdot \left(D \nabla \rho \right)
+    \end{eqnarray}
+    \begin{itemize}
+        \item $\rho$ particle density.
+        \item $\bm{j} = - D \nabla \rho$ particle density current.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Separation of variables \& Neumann boundary conditions}
+    Consider a parallel-walls cavity on $x\!\in\![0,L]$, a probability density 
+    $\rho(x,t)=\varphi(t)\,\phi(x)$, and $D$ constant. 
+
+    \pause
+    Neumann boundary condition $\nabla \rho \cdot \bm{n} (x) = \nabla \rho \cdot \bm{n} (L) = 0$
+
+    \pause
+    The 1D diffusion equation becomes 
+    \[
+    \phi''(x) + k^2 \phi(x) = 0, \qquad
+    \dot{\varphi}(t) + D k^2 \varphi(t) = 0.
+    \]
+
+    \pause
+    \textbf{Eigenmodes.} (Normal modes)
+    $\phi_n(x)=\cos\!\left(\tfrac{n\pi x}{L}\right)$,\;
+    $\varphi_n(t) = \exp(- \tau_n t)$, \;
+    $k_n=\tfrac{n\pi}{L}$,\;
+    $\tau_n=Dk_n^2$,\;
+    $n=0,\,1,\hdots$.
+\end{frame}
+
+\begin{frame}{Finite Differences}
+    On the computer the derivative + Neumann BC can be approximated as:
+    \begin{eqnarray}
+        \frac{1}{\Delta x^2}\begin{bmatrix}
+            -1 & 1 & 0 & \cdots & 0 & 0\\
+            1 & -2 & 1 & \cdots & 0 & 0\\  
+            0 & 1 & -2 & \cdots & 0 & 0\\      
+            \vdots & \vdots & \vdots & \ddots & \vdots & \vdots \\
+            0 & 0 & 0 & \cdots & 1 & -1
+        \end{bmatrix}
+        \begin{bmatrix}
+            \phi_1 \\  \phi_2 \\  \phi_3 \\ \vdots \\ \phi_{N-1} \\  \phi_N 
+        \end{bmatrix} 
+        & = &
+        -k^2 
+        \begin{bmatrix}
+            \phi_1 \\  \phi_2 \\  \phi_3 \\ \vdots \\ \phi_{N-1} \\  \phi_N 
+        \end{bmatrix} 
+    \end{eqnarray}
+    where we use the boundary condition $\nabla \phi_0=0$ and $\nabla \phi_{N+1}=0$.
+\end{frame}
+
+\begin{frame}[fragile]{Difussion Equation Eigensystem Code}
+    \begin{minted}[fontsize=\footnotesize]{julia1}
+        function analytical_eigenstate(i_mode)
+            return x -> cos(x * pi * i_mode/ p.L)
+        end
+
+        T = Float64
+        p = (L = 1,
+            N = 100,
+            c = 1,
+            )
+        A = make_Diffusion_eq_Neumann_matrix(T, p)
+        x = LinRange(T(0), T(p.L), p.N+2)
+        F = eigen(Matrix(A), sortby=abs)
+    \end{minted}
+\end{frame}
+
+\begin{frame}{Diffusion Equation solution}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \centering 
+            \begin{figure}
+            \includegraphics[width=0.9\linewidth]{../day2/Diffusion_eq_eigenstate_001.png} \\
+            \caption{First eigen mode} 
+            \end{figure}
+        \end{column}
+
+        \begin{column}{0.5\textwidth}
+            \centering 
+            \begin{figure}
+            \includegraphics[width=0.9\linewidth]{../day2/Diffusion_eq_eigenstate_003.png} \\
+            \caption{Third eigen mode} 
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% Schrodinger Equation %
+%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Schr\"odinger Equation}
+
+\begin{frame}{Schr\"odinger Equation}
+    Schr\"odinger Equation in position basis:
+    \begin{eqnarray}
+        \im \hbar \frac{\partial \psi}{\partial t} & = & 
+            -\frac{\hbar^2}{2m}\nabla^2 \psi + V(\bm{x}) \psi
+    \end{eqnarray}
+    \pause
+    \begin{itemize}
+        \item $\psi$  gives probability amplitude. 
+        \item $-\frac{\hbar^2}{2m}\nabla^2 \psi$  comes from momentum contribution to the Hamiltonian. 
+        \item $V(\bm{x})$ is the potential energy contribution to the Hamiltonian.
+    \end{itemize}
+    \pause
+    We will consider $V(\bm{x}) = V_0$ for $x \in [-L, L]$ and $V(\bm{x}) = 0$ elsewhere. 
+\end{frame}
+
+\begin{frame}{Finite well $V_0 < 0$}
+    Bound states
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \centering 
+            \begin{figure}
+            \includegraphics[width=0.9\linewidth]{../day2/Schr_finitewell_eigenstate_001.png} \\
+            \caption{First bound state} 
+            \end{figure}
+        \end{column}
+
+        \begin{column}{0.5\textwidth}
+            \centering 
+            \begin{figure}
+            \includegraphics[width=0.9\linewidth]{../day2/Schr_finitewell_eigenstate_002.png} \\
+            \caption{Second bound state} 
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Finite well $V_0 < 0$}
+    No bound states
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \centering 
+            \begin{figure}
+            \includegraphics[width=0.9\linewidth]{../day2/Schr_finitewell_eigenstate_003.png} \\
+            \caption{First no bound state} 
+            \end{figure}
+        \end{column}
+
+        \begin{column}{0.5\textwidth}
+            \centering 
+            \begin{figure}
+            \includegraphics[width=0.9\linewidth]{../day2/Schr_finitewell_eigenstate_004.png} \\
+            \caption{Second no bound state} 
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Finite barrier $V_0 > 0$}
+    Near degenerated eigen states
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \centering 
+            \begin{figure}
+            \includegraphics[width=0.9\linewidth]{../day2/Schr_finitebarrier_eigenstate_001.png} \\
+            \caption{First eigen state} 
+            \end{figure}
+        \end{column}
+
+        \begin{column}{0.5\textwidth}
+            \centering 
+            \begin{figure}
+            \includegraphics[width=0.9\linewidth]{../day2/Schr_finitebarrier_eigenstate_002.png} \\
+            \caption{Second eigen state} 
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Sum of near degenerated eigen states}
+    \centering
+    \animategraphics[controls,width=\linewidth]{10}{../day2/frames_Schr_finitebarrier/sum_modes_01-}{0001}{0100}
+\end{frame}
+
+
+
+\end{document}

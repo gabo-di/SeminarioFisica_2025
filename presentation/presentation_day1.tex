@@ -1,0 +1,264 @@
+\documentclass[aspectratio=169]{beamer}
+\usetheme[numbering=fraction,progressbar=frametitle]{metropolis}
+\usepackage{animate}
+\usepackage{graphicx}
+\usepackage{physics}
+\usepackage{amsmath, amssymb}
+\usepackage[newfloat]{minted} % code highlighting (needs -shell-escape and activate conda env base)
+\usepackage{textgreek}
+\newcommand{\im}{\mathrm{i}} % for imaginary number
+\usepackage[svgnames]{xcolor}
+\setbeamercolor{background canvas}{bg=Ivory}
+
+\title{Normal Modes}
+\author{Gabriel D\'iaz Iturry}
+\date{Conferencias de F\'isica Te\'orica, FCyT 2025}
+
+
+
+\begin{document}
+\maketitle
+
+\begin{frame}
+\frametitle{Table of Contents}
+\tableofcontents
+\end{frame}
+
+%%%%%%%%%%%%%%%%
+% 1 Oscillator %
+%%%%%%%%%%%%%%%%
+\section{Simple Harmonic Oscillator}
+
+\begin{frame}{Simple Harmonic Oscillator}
+    Simple Harmonic Oscillator Differential Equation:
+    \begin{eqnarray}
+        \ddot x & = &  -\omega^2 x 
+    \end{eqnarray}
+    \pause
+    Initial condition:
+    \begin{eqnarray}
+        x(0) & = & x_0 \nonumber \\
+        \dot x(0) & = & v_0 \nonumber
+    \end{eqnarray}
+    \pause
+    Solution:
+    \begin{eqnarray}
+        x(t) & = & x_0\cos(\omega t) + \frac{v_0}{\omega}\sin(\omega t) \nonumber \\
+        \dot x(t) & = & -\omega x_0\sin(\omega t) + v_0\cos(\omega t) \nonumber
+    \end{eqnarray}
+\end{frame}
+
+\begin{frame}{Simple Harmonic Oscillator Matrix form}
+    On computer we can use first order ODE's
+    \[
+        \dot x  =  v, \quad
+        \dot v  = -\omega^2 x.
+    \]
+    \pause
+    If we use matrix form:
+    \begin{eqnarray}
+        \begin{bmatrix} \dot x \\ \dot v \end{bmatrix} & = & \begin{bmatrix} 0 & 1 \\ -\omega^2 & 0 \end{bmatrix}  \begin{bmatrix} x \\ v \end{bmatrix} \nonumber
+    \end{eqnarray}
+\end{frame}
+
+\begin{frame}{Matrix exponential equation}
+    Make the change $v \leftarrow \frac{v}{\omega}$ then we have
+    \begin{eqnarray}
+        \begin{bmatrix} \dot x \\ \dot v \end{bmatrix} & = & \omega \begin{bmatrix} 0 & 1 \\ -1 & 0 \end{bmatrix}  \begin{bmatrix} x \\ v \end{bmatrix} \nonumber
+    \end{eqnarray}
+    with formal solution
+    \begin{eqnarray}
+        \begin{bmatrix} x \\ v \end{bmatrix} & = & \exp\left(\omega t \begin{bmatrix} 0 & 1 \\ -1 & 0 \end{bmatrix}\right)  \begin{bmatrix} x_0 \\ v_0 \end{bmatrix} \nonumber
+    \end{eqnarray}
+    \pause
+
+    Eigenvalues $\im[-\omega, \omega]$  and eigenvectors
+    \begin{equation}
+        \begin{bmatrix} 1 \\ -\im \end{bmatrix} ; \;  
+        \begin{bmatrix} 1 \\ \im  \end{bmatrix} \nonumber 
+    \end{equation}
+    \pause
+    How to go from here to our previous solution?
+\end{frame}
+
+\begin{frame}[fragile]{Simple Harmonic Oscillator Code}
+    \begin{minted}[fontsize=\footnotesize]{julia1}
+        function harmonic_oscillator!(du, u ,p, t)
+            ω = p.ω
+            du[1] = u[2]
+            du[2] = - ω^2*u[1]
+            return nothing
+        end
+
+        T = Float64
+        p = (ω = 2pi, 
+             τ = 3)
+        u0 = T[1, 0]
+        tspan = (T(0), T(2pi/p.ω * p.τ))
+        prob = ODEProblem(harmonic_oscillator!, u0, tspan, p)
+        sol = solve(prob)
+    \end{minted}
+\end{frame}
+
+\begin{frame}{Simple Harmonic Oscillator Animation}
+    \centering
+    \animategraphics[controls,width=\linewidth]{10}{../day1/frames_simple_oscillator/simple_ho-}{0001}{0100}
+\end{frame}
+
+
+
+%%%%%%%%%%%%%%%%%
+% 2 Oscillators %
+%%%%%%%%%%%%%%%%%
+\section{2 Oscillators}
+
+\begin{frame}{2 Oscillators}
+    Linear Chain of two Oscillators Differential Equation:
+    \begin{eqnarray}
+        \ddot x_1 & = &  -\omega^2 x_1 -\omega^2(x_1-x_2) \\
+        \ddot x_2 & = &  -\omega^2 x_2 -\omega^2(x_2-x_1) 
+    \end{eqnarray}
+    \pause
+    (Linear) change of variables to $y_1 = x_1 - x_2$ and $y_2 = x_1 + x_2$:
+    \begin{eqnarray}
+        \ddot y_1 & = &  -(\sqrt{3}\omega)^2 y_1 \\
+        \ddot y_2 & = &  -\omega^2 y_2 
+    \end{eqnarray}
+    \pause
+    Solution: 
+    \begin{eqnarray}
+        x_1(t) - x_2(t) & = & (x_1(0) - x_2(0))\cos(\sqrt{3}\omega t) + \frac{\dot x_1(0) - \dot x_2(0)}{\sqrt{3}\omega}\sin(\sqrt{3}\omega t) \nonumber \\
+        x_1(t) + x_2(t) & = & (x_1(0) + x_2(0))\cos(\omega t) + \frac{\dot x_1(0) + \dot x_2(0)}{\omega}\sin(\omega t) \nonumber 
+    \end{eqnarray}
+\end{frame}
+
+\begin{frame}{2 Oscillators Matrix form}
+    In matrix form:
+    \begin{eqnarray}
+        \begin{bmatrix} \dot x_1 \\ \dot x_2 \\ \dot v_1 \\ \dot v_2 \end{bmatrix} 
+            & = & \begin{bmatrix} 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & 1 \\ -2\omega^2 & \omega^2 & 0 & 0 \\ \omega^2 & -2\omega^2 & 0 & 0 \end{bmatrix}
+                    \begin{bmatrix}  x_1 \\  x_2 \\  v_1 \\  v_2 \end{bmatrix} 
+    \end{eqnarray}
+    \pause
+    with eigenvalues $\im[-\omega, \omega, -\sqrt{3}\omega, \sqrt{3}\omega]$  and eigenvectors
+    \begin{equation}
+        \begin{bmatrix} -\im \\ -\im \\ -1 \\ -1 \end{bmatrix} ; \;  
+        \begin{bmatrix} \im \\ \im \\ -1 \\ -1 \end{bmatrix} ; \;  
+        \begin{bmatrix} \im \\ -\im \\ \sqrt{3} \\ -\sqrt{3} \end{bmatrix} ; \;  
+        \begin{bmatrix} -\im \\ \im \\ \sqrt{3} \\ -\sqrt{3} \end{bmatrix}  \nonumber 
+    \end{equation}
+\end{frame}
+
+\begin{frame}[fragile]{2 Oscillators Code}
+    \begin{minted}[fontsize=\footnotesize]{julia1}
+        function two_harmonic_oscillator!(du, u, p, t)
+            ω = p.ω
+            du[1] = u[3]
+            du[2] = u[4]
+            du[3] = -ω^2 * (2*u[1] - u[2])
+            du[4] = -ω^2 * (2*u[2] - u[1])
+            return nothing
+        end
+
+        # eigen modes
+        ω = p.ω
+        A = T[
+             0     0    1   0;
+             0     0    0   1;
+          -2ω^2   ω^2   0   0;
+            ω^2 -2ω^2   0   0
+        ]
+    \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{2 Oscillators Code}
+    \begin{minted}[fontsize=\footnotesize]{julia1}
+        F = eigen(A, sortby=abs)
+        min_omega = abs(imag(F.values[1]))
+        max_omega = abs(imag(F.values[end]))
+        @show min_omega # 1
+        @show max_omega # sqrt(3) ~ 1.73205...
+        tspan = (T(0), T(2pi/min_omega * p.τ))
+
+        # first eigen mode
+        u0_1 = T.(real.(F.vectors[:,1] + F.vectors[:,2]) )
+        prob_1 = ODEProblem(two_harmonic_oscillator!, u0_1, tspan, p)
+        sol_1 = solve(prob_1)
+    \end{minted}
+\end{frame}
+
+\begin{frame}{2 Oscillators Animation}
+    \centering
+    \animategraphics[controls,width=\linewidth]{10}{../day1/frames_two_oscillators/two_ho-}{0001}{0100}
+\end{frame}
+
+
+
+%%%%%%%%%%%%%%%%%
+% N Oscillators %
+%%%%%%%%%%%%%%%%%
+\section{N Oscillators}
+
+\begin{frame}{N Oscillators}
+    Linear Chain of N Oscillators Differential Equation:
+    \begin{eqnarray}
+        \begin{bmatrix}
+            \ddot x_1 \\ \ddot x_2 \\ \ddot x_3 \\ \vdots \\ \ddot x_{N-1}  \\ \ddot x_N 
+        \end{bmatrix}   & = & 
+        \omega^2
+        \begin{bmatrix}
+            -2 & 1 & 0 & \cdots & 0 & 0\\
+            1 & -2 & 1 & \cdots & 0 & 0\\  
+            0 & 1 & -2 & \cdots & 0 & 0\\      
+            \vdots & \vdots & \vdots & \ddots & \vdots & \vdots \\
+            0 & 0 & 0 & \cdots & 1 & -2
+        \end{bmatrix}
+        \begin{bmatrix}
+            x_1 \\  x_2 \\  x_3 \\ \vdots \\ x_{N-1} \\  x_N 
+        \end{bmatrix} 
+    \end{eqnarray}
+\end{frame}
+
+\begin{frame}[fragile]{N Oscillators Code}
+    \begin{minted}[fontsize=\footnotesize]{julia1}
+        function n_harmonic_oscillator(du, u, p, t)
+            mul!(du, p.A, u) 
+            return nothing
+        end
+        T = Float64
+        p = (ω = 1, 
+             τ = 3,
+             N = 20)
+
+        A = make_A_simple_matrix(T, p)
+        F = eigen(Matrix(A), sortby=abs)
+        min_omega = abs(imag(F.values[1]))
+        tspan = (T(0), T(2pi/min_omega * p.τ))
+        l_mode = 1
+        u0 = T.(imag.(F.vectors[:,l_mode] -  F.vectors[:,l_mode+1] ))
+        prob = ODEProblem(n_harmonic_oscillator, u0, tspan, (A=A,))
+        sol = solve(prob)
+    \end{minted}
+\end{frame}
+
+\begin{frame}{N Oscillators Animation}
+    \centering
+    \animategraphics[controls,width=\linewidth]{10}{../day1/frames_020_oscillators_001_mode/N_ho-}{0001}{0100}
+\end{frame}
+
+\begin{frame}{N Oscillators Animation}
+    \centering
+    \animategraphics[controls,width=\linewidth]{10}{../day1/frames_020_oscillators_003_mode/N_ho-}{0001}{0100}
+\end{frame}
+
+\begin{frame}{N Oscillators Eigen Energies and Frequencies}
+    \centering 
+    \begin{figure}
+    \includegraphics[width=\linewidth]{../day1/eigen_energies_020.png} \\
+    \caption{Eigen energies and frequencies for a chain of 20 oscillators.} 
+    \end{figure}
+\end{frame}
+
+
+
+\end{document}
