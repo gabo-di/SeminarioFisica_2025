@@ -228,17 +228,11 @@ end
 
 function update_condition(u_alg::MetropolisUpdate, s, S, i, j, p, rng)
     # WRITE YOUR CODE HERE
-    # energy change
-    ΔE = 2.0 * s * local_energy(S, i, j, p)
-    # update probability
-    return rand(rng) < exp(-p.β * ΔE)
+    # return true if the spin must be flipped
 end
 
 function update_condition(u_alg::GlauberUpdate, s, S, i, j, p, rng)
     # WRITE YOUR CODE HERE
-    # energy change
-    ΔE = 2.0 * s * local_energy(S, i, j, p)
-    # update probability
-    return rand(rng) < 1/(1+exp(p.β * ΔE))
+    # return true if the spin must be flipped
 end
 
