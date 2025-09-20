@@ -1,6 +1,9 @@
 using Random
 using GLMakie
 using Printf
+using Statistics
+using FFTW
+using MCMCDiagnosticTools
 
 
 abstract type AbstractUpdateMode end
@@ -13,8 +16,8 @@ abstract type AbstractUpdateAlgorithm end
 struct MetropolisUpdate <: AbstractUpdateAlgorithm end
 struct GlauberUpdate <: AbstractUpdateAlgorithm end
 
-function main_test()
-    Random.seed!(31)
+function main_test_movie()
+    Random.seed!(42)
     rng = Random.default_rng()
 
     # 1 D
@@ -22,89 +25,93 @@ function main_test()
           Ny = 1,
           h = 0,
           J = 1,
-          β = 2,
+          β = 0.5,
           frames = 400,
           out = "./day4/ising_1D_single_metropolis.mp4"
     )
-    simulate_ising(SingleUpdate(), MetropolisUpdate(), p; rng=rng)
+    S = initial_spin_chain(p, rng)
+    simulate_ising_movie!(S, SingleUpdate(), MetropolisUpdate(), p; rng=rng)
 
     p = ( Nx = 256,
           Ny = 1,
           h = 0,
           J = 1,
-          β = 2,
+          β = 0.5,
           frames = 400,
           out = "./day4/ising_1D_single_glauber.mp4"
     )
-    simulate_ising(SingleUpdate(), GlauberUpdate(), p; rng=rng)
+    S = initial_spin_chain(p, rng)
+    simulate_ising_movie!(S, SingleUpdate(), GlauberUpdate(), p; rng=rng)
 
     p = ( Nx = 256,
           Ny = 1,
           h = 0,
           J = 1,
-          β = 2,
+          β = 0.5,
           frames = 400,
           out = "./day4/ising_1D_checkerboard_metropolis.mp4"
     )
-    simulate_ising(CheckerboardUpdate(), MetropolisUpdate(), p; rng=rng)
+    S = initial_spin_chain(p, rng)
+    simulate_ising_movie!(S, CheckerboardUpdate(), MetropolisUpdate(), p; rng=rng)
 
     p = ( Nx = 256,
           Ny = 1,
           h = 0,
           J = 1,
-          β = 2,
+          β = 0.5,
           frames = 400,
           out = "./day4/ising_1D_checkerboard_glauber.mp4"
     )
-    simulate_ising(CheckerboardUpdate(), GlauberUpdate(), p; rng=rng)
+    S = initial_spin_chain(p, rng)
+    simulate_ising_movie!(S, CheckerboardUpdate(), GlauberUpdate(), p; rng=rng)
     
     # 2 D
     p = ( Nx = 128,
           Ny = 128,
           h = 0,
           J = 1,
-          β = 2,
+          β = 0.5,
           frames = 400,
           out = "./day4/ising_2D_single_metropolis.mp4"
     )
-    simulate_ising(SingleUpdate(), MetropolisUpdate(), p; rng=rng)
+    S = initial_spin_chain(p, rng)
+    simulate_ising_movie!(S, SingleUpdate(), MetropolisUpdate(), p; rng=rng)
 
     p = ( Nx = 128,
           Ny = 128,
           h = 0,
           J = 1,
-          β = 2,
+          β = 0.5,
           frames = 400,
           out = "./day4/ising_2D_single_glauber.mp4"
     )
-    simulate_ising(SingleUpdate(), GlauberUpdate(), p; rng=rng)
+    S = initial_spin_chain(p, rng)
+    simulate_ising_movie!(S, SingleUpdate(), GlauberUpdate(), p; rng=rng)
 
     p = ( Nx = 128,
           Ny = 128,
           h = 0,
           J = 1,
-          β = 2,
+          β = 0.5,
           frames = 400,
           out = "./day4/ising_2D_checkerboard_metropolis.mp4"
     )
-    simulate_ising(CheckerboardUpdate(), MetropolisUpdate(), p; rng=rng)
+    S = initial_spin_chain(p, rng)
+    simulate_ising_movie!(S, CheckerboardUpdate(), MetropolisUpdate(), p; rng=rng)
 
     p = ( Nx = 128,
           Ny = 128,
           h = 0,
           J = 1,
-          β = 2,
+          β = 0.5,
           frames = 400,
           out = "./day4/ising_2D_checkerboard_glauber.mp4"
     )
-    simulate_ising(CheckerboardUpdate(), GlauberUpdate(), p; rng=rng)
+    S = initial_spin_chain(p, rng)
+    simulate_ising_movie!(S, CheckerboardUpdate(), GlauberUpdate(), p; rng=rng)
 end
 
-function simulate_ising(u_mode::M, u_alg::T, p; rng=Random.default_rng()) where {M<:AbstractUpdateMode, T<:AbstractUpdateAlgorithm}
-
-    S = initial_spin_chain(p, rng)
-
-    
+function simulate_ising_movie!(S, u_mode::M, u_alg::T, p; rng=Random.default_rng()) where {M<:AbstractUpdateMode, T<:AbstractUpdateAlgorithm}
     fig = Figure(size=(1100, 800))
 
     axL = Axis(fig[1,1],
@@ -142,11 +149,18 @@ function simulate_ising(u_mode::M, u_alg::T, p; rng=Random.default_rng()) where 
         # update spins plot
         Z[] = S  
 
-        # update magnetiation and time plot
+        # update magnetization and time plot
         push!(t_obs[], Float32(f))
         push!(m_obs[], Float32(magnetization(S)))
         notify(t_obs); notify(m_obs)
     end
+    res = ess_rhat(reshape(m_obs[],:,1); kind=:basic )
+
+    res_text = @sprintf("ess = %.3f, rhat = %3.f", res.ess, res.rhat) 
+    text!(axM, 0.8, 0.2; text=res_text, space=:relative,
+          align=(:left, :top), color=:coral, fontsize=18)
+    save(p.out[1:end-4]*".png", fig)
+
     println("Simulation saved in ", p.out)
 end
 
@@ -172,7 +186,7 @@ function magnetization(S)
     return sum(S)/length(S)
 end
 
-function local_energy(S, i, j, p)
+function local_field(S, i, j, p)
     # sum in x direction
     s = S[neigh_L(i, p.Nx), j] + S[neigh_R(i, p.Nx), j]
     # sum in y direction
@@ -200,12 +214,7 @@ end
 function spin_update!(S, u_mode::SingleUpdate, u_alg::T, p, rng) where T<:AbstractUpdateAlgorithm
     for _ in 1:(p.Nx * p.Ny)
         # random position
-        i = rand(rng, 1:p.Nx) 
-        j = rand(rng, 1:p.Ny) 
-        s = S[i,j]
-        if update_condition(u_alg, s, S, i, j, p, rng) 
-            S[i,j] = -s
-        end
+        # WRITE YOUR CODE HERE
     end
 end
 
@@ -235,4 +244,3 @@ function update_condition(u_alg::GlauberUpdate, s, S, i, j, p, rng)
     # WRITE YOUR CODE HERE
     # return true if the spin must be flipped
 end
-
