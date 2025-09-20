@@ -215,12 +215,6 @@ function spin_update!(S, u_mode::SingleUpdate, u_alg::T, p, rng) where T<:Abstra
     for _ in 1:(p.Nx * p.Ny)
         # random position
         # WRITE YOUR CODE HERE
-        i = rand(rng, 1:p.Nx) 
-        j = rand(rng, 1:p.Ny) 
-        s = S[i,j]
-        if update_condition(u_alg, s, S, i, j, p, rng) 
-            S[i,j] = -s
-        end
     end
 end
 
