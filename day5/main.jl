@@ -1,5 +1,6 @@
 using QuantumToolbox
 using CairoMakie
+using Printf
 
 function main_JaynesCumming()
     p = (
@@ -13,6 +14,7 @@ function main_JaynesCumming()
 end
 
 function JaynesCumming(p)
+    # WRITE YOUR CODE HERE
     M = p.M
     ωa = p.ωa
     ωc = p.ωc
@@ -131,12 +133,11 @@ function simulation_DissipativeJaynesCumming(p)
 end
 
 function Dicke(p)
+    # WRITE YOUR CODE HERE
     ωc = p.ωc
     ωa = p.ωa
     N = p.N # N: number of atoms
     M = p.M # M: cavity Hilbert space truncation 
-    λ = p.λ # interaction of co-rotating term 
-    λ_ = p.λ_ # interaction of counter-rotating term
 
     j = N / 2
 
@@ -146,20 +147,151 @@ function Dicke(p)
     Jm = jmat(j, :-) ⊗ qeye(M) 
 
     H0 = ωc * a' * a + ωa * Jz
-    H1 = λ/ sqrt(N) * (Jp*a + Jm*a') 
-    H2 = λ_/ sqrt(N) * (Jp*a' + Jm*a) 
+    H1 = 1/ sqrt(N) * (Jp*a + Jm*a') 
+    H2 = 1/ sqrt(N) * (Jp*a' + Jm*a) 
 
-    return (H0 + H1 + H2)
+    return H0, H1, H2, a, Jz
 end
 
-function simulate_Dicke(p)
+function simulation_Dicke(p)
+    N = p.N # N: number of atoms
+    M = p.M # M: cavity Hilbert space truncation 
 
-    ψGs = map(gs) do g
-        H = H0(g)
+    H0, H1, H2, a, Jz = Dicke(p)
+
+    gs = 0.0:0.05:1.0
+    ψGs = QuantumObject[]
+    for g in gs 
+        H = H0 + g*(H1 + H2)
         vals, vecs = eigenstates(H)
-        vecs[1]
+        push!(ψGs, vecs[1])
     end
 
-    nvec = expect(a0'*a0, ψGs)
-    Jzvec = expect(Jz0, ψGs)
+    nvec = expect(a'*a, ψGs)
+    Jzvec = expect(Jz, ψGs)
+
+    # the indices in coupling strength list (gs)
+    # to display wigner and fock distribution
+    cases = 1:5:21
+
+    fig_1 = Figure(size = (900,650))
+    for (hpos, idx) in enumerate(cases)
+        g = gs[idx] # coupling strength
+        ρcav = ptrace(ψGs[idx], 1) # cavity reduced state
+        
+        # plot wigner
+        _, ax, hm = plot_wigner(ρcav, location = fig_1[1,hpos])
+        ax.title = "g = $g"
+        ax.aspect = 1
+        
+        # plot fock distribution
+        _, ax2 = plot_fock_distribution(ρcav, location = fig_1[2,hpos])
+
+        ax2.xticks = (0:1:(size(ρcav,1)-1), string.(collect(range(N/2,-N/2,step=-1))))
+        ax2.xlabel = "spin"
+        
+        if hpos != 1
+            hideydecorations!(ax, ticks=false)
+            hideydecorations!(ax2, ticks=false)
+            if hpos == 5 # Add colorbar with the last returned heatmap (_hm) 
+                Colorbar(fig_1[1,6], hm)
+            end
+        end    
+    end
+
+    # plot average Jz 
+    ax3 = Axis(fig_1[3,1:6], height=200, xlabel=L"g", ylabel=L"\langle \hat{J}_{z} \rangle")
+    xlims!(ax3, -0.02, 1.02)
+    lines!(ax3, gs, real(Jzvec), color=:teal)
+    ax3.xlabelsize, ax3.ylabelsize = 20, 20
+    vlines!(ax3, gs[cases], color=:orange, linestyle = :dash, linewidth = 4)
+
+
+
+    fig_2 = Figure(size = (900,650))
+    for (hpos, idx) in enumerate(cases)
+        g = gs[idx] # coupling strength
+        ρcav = ptrace(ψGs[idx], 2) # cavity reduced state
+        
+        # plot wigner
+        _, ax, hm = plot_wigner(ρcav, location = fig_2[1,hpos])
+        ax.title = "g = $g"
+        ax.aspect = 1
+        
+        # plot fock distribution
+        _, ax2 = plot_fock_distribution(ρcav, location = fig_2[2,hpos])
+
+        ax2.xticks = (0:2:size(ρcav,1)-1, string.(0:2:size(ρcav,1)-1))
+        
+        if hpos != 1
+            hideydecorations!(ax, ticks=false)
+            hideydecorations!(ax2, ticks=false)
+            if hpos == 5 # Add colorbar with the last returned heatmap (_hm) 
+                Colorbar(fig_2[1,6], hm)
+            end
+        end    
+    end
+
+    # plot average photon number with respect to coupling strength
+    ax3 = Axis(fig_2[3,1:6], height=200, xlabel=L"g", ylabel=L"\langle \hat{n} \rangle")
+    xlims!(ax3, -0.02, 1.02)
+    lines!(ax3, gs, real(nvec), color=:teal)
+    ax3.xlabelsize, ax3.ylabelsize = 20, 20
+    vlines!(ax3, gs[cases], color=:orange, linestyle = :dash, linewidth = 4)
+
+    
+    # initial state: all spins down ⊗ vacuum
+    ψ_init = spin_state(N/2, -N/2) ⊗ fock(M,0) 
+
+    g2 = gs[cases[end]]
+    g1 = gs[cases[2]]
+    H_g2 = H0 + g2*(H1 + H2)
+    H_g1 = H0 + g1*(H1 + H2)
+
+    tlist = range(0, 50; length=400)
+    res_g2 = sesolve(H_g2, ψ_init, tlist; e_ops=[a'*a, Jz])
+    res_g1 = sesolve(H_g1, ψ_init, tlist; e_ops=[a'*a, Jz])
+
+    n_of_t_2  = real.(res_g2.expect[1,:])
+    jz_of_t_2 = real.(res_g2.expect[2,:])
+    n_of_t_1  = real.(res_g1.expect[1,:])
+    jz_of_t_1 = real.(res_g1.expect[2,:]) 
+
+    fig_3 = Figure(size=(900, 350))
+    axn = Axis(
+     fig_3[1,1],
+     xlabel = "time",
+     ylabel = L"\langle \hat{n} \rangle"
+    )
+    axJz = Axis(
+     fig_3[1,2],
+     xlabel = "time",
+     ylabel = L"\langle \hat{J}_{z} \rangle"
+    )
+
+    xlims!(axn, 0, max(tlist...))
+    xlims!(axJz, 0, max(tlist...))
+
+    lines!(axn, tlist, n_of_t_1, label = @sprintf("g = %.3f",g1))
+    lines!(axn, tlist, n_of_t_2, label = @sprintf("g = %.3f",g2))
+
+    lines!(axJz, tlist, jz_of_t_1, label = @sprintf("g = %.3f",g1))
+    lines!(axJz, tlist, jz_of_t_2, label = @sprintf("g = %.3f",g2))
+
+    axislegend(axn; position = :rt, labelsize = 15)
+    axislegend(axJz; position = :rt, labelsize = 15)
+
+    return fig_1, fig_2, fig_3
 end
+
+function main_Dicke()
+    p = (
+        M = 10, # Fock space truncated dimension
+        N = 4, # number of atoms
+        ωa = 1, # atomic frequency
+        ωc = 1, # light frequency
+    )
+
+    simulation_Dicke(p)
+end
+
