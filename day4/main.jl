@@ -175,11 +175,7 @@ end
 
 function neigh_R(i, L)
     # periodic boundary condition
-    if i == L
-        return 1 
-    else
-        return i+1
-    end
+    # WRITE YOUR CODE HERE
 end
 
 function magnetization(S)
