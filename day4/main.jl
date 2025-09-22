@@ -193,7 +193,7 @@ function local_field(S, i, j, p)
     if p.Ny > 1
         s += S[i, neigh_L(j, p.Ny)] + S[i, neigh_R(j, p.Ny)]
     end
-    # total energy
+    # total local field 
     return p.J*s + p.h
 end
 
@@ -214,7 +214,6 @@ end
 function spin_update!(S, u_mode::SingleUpdate, u_alg::T, p, rng) where T<:AbstractUpdateAlgorithm
     for _ in 1:(p.Nx * p.Ny)
         # random position
-        # WRITE YOUR CODE HERE
         i = rand(rng, 1:p.Nx) 
         j = rand(rng, 1:p.Ny) 
         s = S[i,j]
@@ -242,7 +241,6 @@ function spin_update!(S, u_mode::CheckerboardUpdate, u_alg::T, p, rng) where T<:
 end
 
 function update_condition(u_alg::MetropolisUpdate, s, S, i, j, p, rng)
-    # WRITE YOUR CODE HERE
     # energy change
     ΔE = 2.0 * s * local_field(S, i, j, p)
     # update probability
@@ -250,7 +248,6 @@ function update_condition(u_alg::MetropolisUpdate, s, S, i, j, p, rng)
 end
 
 function update_condition(u_alg::GlauberUpdate, s, S, i, j, p, rng)
-    # WRITE YOUR CODE HERE
     # energy change
     ΔE = 2.0 * s * local_field(S, i, j, p)
     # update probability

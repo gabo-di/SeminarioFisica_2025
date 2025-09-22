@@ -174,112 +174,123 @@ function simulation_Dicke(p)
     # to display wigner and fock distribution
     cases = 1:5:21
 
-    fig_1 = Figure(size = (900,650))
-    for (hpos, idx) in enumerate(cases)
-        g = gs[idx] # coupling strength
-        ρcav = ptrace(ψGs[idx], 1) # cavity reduced state
-        
-        # plot wigner
-        _, ax, hm = plot_wigner(ρcav, location = fig_1[1,hpos])
-        ax.title = "g = $g"
-        ax.aspect = 1
-        
-        # plot fock distribution
-        _, ax2 = plot_fock_distribution(ρcav, location = fig_1[2,hpos])
+    function plot_atoms_data()
+        fig_1 = Figure(size = (900,650))
+        for (hpos, idx) in enumerate(cases)
+            g = gs[idx] # coupling strength
+            ρcav = ptrace(ψGs[idx], 1) # atoms reduced state
+            
+            # plot wigner
+            _, ax, hm = plot_wigner(ρcav, location = fig_1[1,hpos])
+            ax.title = "g = $g"
+            ax.aspect = 1
+            
+            # plot fock distribution
+            _, ax2 = plot_fock_distribution(ρcav, location = fig_1[2,hpos])
 
-        ax2.xticks = (0:1:(size(ρcav,1)-1), string.(collect(range(N/2,-N/2,step=-1))))
-        ax2.xlabel = "spin"
-        
-        if hpos != 1
-            hideydecorations!(ax, ticks=false)
-            hideydecorations!(ax2, ticks=false)
-            if hpos == 5 # Add colorbar with the last returned heatmap (_hm) 
-                Colorbar(fig_1[1,6], hm)
-            end
-        end    
+            ax2.xticks = (0:1:(size(ρcav,1)-1), string.(collect(range(N/2,-N/2,step=-1))))
+            ax2.xlabel = L"\hat{J}_{z}"
+            
+            if hpos != 1
+                hideydecorations!(ax, ticks=false)
+                hideydecorations!(ax2, ticks=false)
+                if hpos == 5 # Add colorbar with the last returned heatmap (_hm) 
+                    Colorbar(fig_1[1,6], hm)
+                end
+            end    
+        end
+
+        # plot average Jz 
+        ax3 = Axis(fig_1[3,1:6], height=200, xlabel=L"g", ylabel=L"\langle \hat{J}_{z} \rangle")
+        xlims!(ax3, -0.02, 1.02)
+        lines!(ax3, gs, real(Jzvec), color=:teal)
+        ax3.xlabelsize, ax3.ylabelsize = 20, 20
+        vlines!(ax3, gs[cases], color=:orange, linestyle = :dash, linewidth = 4)
+        return fig_1
     end
-
-    # plot average Jz 
-    ax3 = Axis(fig_1[3,1:6], height=200, xlabel=L"g", ylabel=L"\langle \hat{J}_{z} \rangle")
-    xlims!(ax3, -0.02, 1.02)
-    lines!(ax3, gs, real(Jzvec), color=:teal)
-    ax3.xlabelsize, ax3.ylabelsize = 20, 20
-    vlines!(ax3, gs[cases], color=:orange, linestyle = :dash, linewidth = 4)
+    fig_1 = plot_atoms_data()
 
 
+    function plot_cavity_data()
+        fig_2 = Figure(size = (900,650))
+        for (hpos, idx) in enumerate(cases)
+            g = gs[idx] # coupling strength
+            ρcav = ptrace(ψGs[idx], 2) # cavity reduced state
+            
+            # plot wigner
+            _, ax, hm = plot_wigner(ρcav, location = fig_2[1,hpos])
+            ax.title = "g = $g"
+            ax.aspect = 1
+            
+            # plot fock distribution
+            _, ax2 = plot_fock_distribution(ρcav, location = fig_2[2,hpos])
 
-    fig_2 = Figure(size = (900,650))
-    for (hpos, idx) in enumerate(cases)
-        g = gs[idx] # coupling strength
-        ρcav = ptrace(ψGs[idx], 2) # cavity reduced state
-        
-        # plot wigner
-        _, ax, hm = plot_wigner(ρcav, location = fig_2[1,hpos])
-        ax.title = "g = $g"
-        ax.aspect = 1
-        
-        # plot fock distribution
-        _, ax2 = plot_fock_distribution(ρcav, location = fig_2[2,hpos])
+            ax2.xticks = (0:2:size(ρcav,1)-1, string.(0:2:size(ρcav,1)-1))
+            
+            if hpos != 1
+                hideydecorations!(ax, ticks=false)
+                hideydecorations!(ax2, ticks=false)
+                if hpos == 5 # Add colorbar with the last returned heatmap (_hm) 
+                    Colorbar(fig_2[1,6], hm)
+                end
+            end    
+        end
 
-        ax2.xticks = (0:2:size(ρcav,1)-1, string.(0:2:size(ρcav,1)-1))
-        
-        if hpos != 1
-            hideydecorations!(ax, ticks=false)
-            hideydecorations!(ax2, ticks=false)
-            if hpos == 5 # Add colorbar with the last returned heatmap (_hm) 
-                Colorbar(fig_2[1,6], hm)
-            end
-        end    
+        # plot average photon number with respect to coupling strength
+        ax3 = Axis(fig_2[3,1:6], height=200, xlabel=L"g", ylabel=L"\langle \hat{n} \rangle")
+        xlims!(ax3, -0.02, 1.02)
+        lines!(ax3, gs, real(nvec), color=:teal)
+        ax3.xlabelsize, ax3.ylabelsize = 20, 20
+        vlines!(ax3, gs[cases], color=:orange, linestyle = :dash, linewidth = 4)
+        return fig_2
     end
-
-    # plot average photon number with respect to coupling strength
-    ax3 = Axis(fig_2[3,1:6], height=200, xlabel=L"g", ylabel=L"\langle \hat{n} \rangle")
-    xlims!(ax3, -0.02, 1.02)
-    lines!(ax3, gs, real(nvec), color=:teal)
-    ax3.xlabelsize, ax3.ylabelsize = 20, 20
-    vlines!(ax3, gs[cases], color=:orange, linestyle = :dash, linewidth = 4)
+    fig_2 = plot_cavity_data()
 
     
-    # initial state: all spins down ⊗ vacuum
-    ψ_init = spin_state(N/2, -N/2) ⊗ fock(M,0) 
+    function plot_expectations_evol()
+        # initial state: all spins down ⊗ vacuum
+        ψ_init = spin_state(N/2, -N/2) ⊗ fock(M,0) 
 
-    g2 = gs[cases[end]]
-    g1 = gs[cases[2]]
-    H_g2 = H0 + g2*(H1 + H2)
-    H_g1 = H0 + g1*(H1 + H2)
+        g2 = gs[cases[end]]
+        g1 = gs[cases[2]]
+        H_g2 = H0 + g2*(H1 + H2)
+        H_g1 = H0 + g1*(H1 + H2)
 
-    tlist = range(0, 50; length=400)
-    res_g2 = sesolve(H_g2, ψ_init, tlist; e_ops=[a'*a, Jz])
-    res_g1 = sesolve(H_g1, ψ_init, tlist; e_ops=[a'*a, Jz])
+        tlist = range(0, 50; length=400)
+        res_g2 = sesolve(H_g2, ψ_init, tlist; e_ops=[a'*a, Jz])
+        res_g1 = sesolve(H_g1, ψ_init, tlist; e_ops=[a'*a, Jz])
 
-    n_of_t_2  = real.(res_g2.expect[1,:])
-    jz_of_t_2 = real.(res_g2.expect[2,:])
-    n_of_t_1  = real.(res_g1.expect[1,:])
-    jz_of_t_1 = real.(res_g1.expect[2,:]) 
+        n_of_t_2  = real.(res_g2.expect[1,:])
+        jz_of_t_2 = real.(res_g2.expect[2,:])
+        n_of_t_1  = real.(res_g1.expect[1,:])
+        jz_of_t_1 = real.(res_g1.expect[2,:]) 
 
-    fig_3 = Figure(size=(900, 350))
-    axn = Axis(
-     fig_3[1,1],
-     xlabel = "time",
-     ylabel = L"\langle \hat{n} \rangle"
-    )
-    axJz = Axis(
-     fig_3[1,2],
-     xlabel = "time",
-     ylabel = L"\langle \hat{J}_{z} \rangle"
-    )
+        fig_3 = Figure(size=(900, 350))
+        axn = Axis(
+         fig_3[1,1],
+         xlabel = "time",
+         ylabel = L"\langle \hat{n} \rangle"
+        )
+        axJz = Axis(
+         fig_3[1,2],
+         xlabel = "time",
+         ylabel = L"\langle \hat{J}_{z} \rangle"
+        )
 
-    xlims!(axn, 0, max(tlist...))
-    xlims!(axJz, 0, max(tlist...))
+        xlims!(axn, 0, max(tlist...))
+        xlims!(axJz, 0, max(tlist...))
 
-    lines!(axn, tlist, n_of_t_1, label = @sprintf("g = %.3f",g1))
-    lines!(axn, tlist, n_of_t_2, label = @sprintf("g = %.3f",g2))
+        lines!(axn, tlist, n_of_t_1, label = @sprintf("g = %.3f",g1))
+        lines!(axn, tlist, n_of_t_2, label = @sprintf("g = %.3f",g2))
 
-    lines!(axJz, tlist, jz_of_t_1, label = @sprintf("g = %.3f",g1))
-    lines!(axJz, tlist, jz_of_t_2, label = @sprintf("g = %.3f",g2))
+        lines!(axJz, tlist, jz_of_t_1, label = @sprintf("g = %.3f",g1))
+        lines!(axJz, tlist, jz_of_t_2, label = @sprintf("g = %.3f",g2))
 
-    axislegend(axn; position = :rt, labelsize = 15)
-    axislegend(axJz; position = :rt, labelsize = 15)
+        axislegend(axn; position = :rt, labelsize = 15)
+        axislegend(axJz; position = :rt, labelsize = 15)
+        return fig_3
+    end
+    fig_3 = plot_expectations_evol()
 
     return fig_1, fig_2, fig_3
 end
@@ -294,4 +305,3 @@ function main_Dicke()
 
     simulation_Dicke(p)
 end
-
