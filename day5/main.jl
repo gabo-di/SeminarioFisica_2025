@@ -15,20 +15,11 @@ end
 
 function JaynesCumming(p)
     # WRITE YOUR CODE HERE
-    M = p.M
-    ωa = p.ωa
-    ωc = p.ωc
-    Ω = p.Ω
-
-    σz = sigmaz() ⊗ qeye(M) 
-    a  = qeye(2)  ⊗ destroy(M)  
-    σ  = sigmam() ⊗ qeye(M) # σ₋ 
-
-    Ha = ωa / 2 * σz
-    Hc = ωc * a' * a 
-    Hint = Ω * (σ * a' + σ' * a)
-
-    Htot  = Ha + Hc + Hint
+    # Ha = ωa / 2 * σz
+    # Hc = ωc * a' * a 
+    # Hint = Ω * (σ * a' + σ' * a)
+    #
+    # Htot  = Ha + Hc + Hint
     return Htot, a, σ
 end
 
@@ -134,21 +125,9 @@ end
 
 function Dicke(p)
     # WRITE YOUR CODE HERE
-    ωc = p.ωc
-    ωa = p.ωa
-    N = p.N # N: number of atoms
-    M = p.M # M: cavity Hilbert space truncation 
-
-    j = N / 2
-
-    Jz = (jmat(N/2, :z) ⊗ qeye(M))
-    a = (qeye(N+1) ⊗ destroy(M))
-    Jp = jmat(j, :+) ⊗ qeye(M)
-    Jm = jmat(j, :-) ⊗ qeye(M) 
-
-    H0 = ωc * a' * a + ωa * Jz
-    H1 = 1/ sqrt(N) * (Jp*a + Jm*a') 
-    H2 = 1/ sqrt(N) * (Jp*a' + Jm*a) 
+    # H0 = ωc * a' * a + ωa * Jz
+    # H1 = 1/ sqrt(N) * (Jp*a + Jm*a') 
+    # H2 = 1/ sqrt(N) * (Jp*a' + Jm*a) 
 
     return H0, H1, H2, a, Jz
 end
@@ -257,8 +236,9 @@ function simulation_Dicke(p)
         H_g1 = H0 + g1*(H1 + H2)
 
         tlist = range(0, 50; length=400)
-        res_g2 = sesolve(H_g2, ψ_init, tlist; e_ops=[a'*a, Jz])
-        res_g1 = sesolve(H_g1, ψ_init, tlist; e_ops=[a'*a, Jz])
+        # WRITE YOUR CODE HERE
+        res_g2 = sesolve(H_g2, ψ_init, tlist; e_ops=[]) # example e_ops=[<n>, <J_z>] 
+        res_g1 = sesolve(H_g1, ψ_init, tlist; e_ops=[])
 
         n_of_t_2  = real.(res_g2.expect[1,:])
         jz_of_t_2 = real.(res_g2.expect[2,:])
