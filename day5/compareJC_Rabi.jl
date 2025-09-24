@@ -3,12 +3,20 @@ using CairoMakie
 using Printf
 
 function JaynesCumming(p, Ω)
-    # WRITE YOUR CODE HERE
-    # Ha = ωa / 2 * σz
-    # Hc = ωc * a' * a 
-    # Hint = Ω * (σ * a' + σ' * a)
-    #
-    # Htot  = Ha + Hc + Hint
+    M = p.M
+    ωa = p.ωa
+    ωc = p.ωc
+
+    σz = sigmaz() ⊗ qeye(M) 
+    a  = qeye(2)  ⊗ destroy(M)  
+    σ  = sigmam() ⊗ qeye(M) # σ₋ 
+
+    Ha = ωa / 2 * σz
+    Hc = ωc * a' * a 
+    Hint = Ω * (σ * a' + σ' * a)
+
+    Htot  = Ha + Hc + Hint
+
     return Htot, a, σ
 end
 
